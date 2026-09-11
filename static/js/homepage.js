@@ -274,7 +274,7 @@ function buildProfileMenu() {
         adminItem.id = "adminItem";
         adminItem.textContent = "Admin panel";
         adminItem.addEventListener("click", () => {
-            window.location.href = "admin.html";
+            window.location.href = "/admin";
         });
         dropdown.insertBefore(adminItem, dropdown.querySelector(".profile-dropdown-divider"));
     }
@@ -301,12 +301,12 @@ function buildProfileMenu() {
     });
 
     document.getElementById("viewProfileItem").addEventListener("click", () => {
-        window.location.href = "profile.html";
+        window.location.href = "/profile";
     });
 
     document.getElementById("logoutItem").addEventListener("click", async () => {
         await Planora.logout();
-        window.location.href = "login.html";
+        window.location.href = "/login";
     });
 }
 
