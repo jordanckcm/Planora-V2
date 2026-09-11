@@ -859,6 +859,7 @@ async function buildEventCard(event) {
                 addBtn.textContent = "Added ✓";
                 addBtn.classList.add("added");
                 addBtn.disabled = true;
+                render();
             } catch (err) {
                 toast(err.message, "error");
             }
