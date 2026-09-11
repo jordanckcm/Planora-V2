@@ -32,6 +32,7 @@ let selectedEventColor = EVENT_COLORS[0];
 let selectedEventIcon = EVENT_ICONS[0];
 let editingEventId = null; // null = creating a new event, otherwise the id being edited
 let eventFormEl = null;
+const pendingDeleteIds = new Set(); // events hidden locally during their undo window
 
 
 function toast(message, type = "") {
@@ -41,6 +42,47 @@ function toast(message, type = "") {
     el.textContent = message;
     stack.appendChild(el);
     setTimeout(() => el.remove(), 3200);
+}
+
+/* A toast with an Undo button. onCommit runs automatically once the
+   window closes without Undo being pressed — that's where the actual
+   destructive action (e.g. the real DELETE call) belongs, so a misclick
+   is fully reversible for as long as the toast is showing. */
+function toastWithUndo(message, onUndo, onCommit, duration = 5000) {
+    const stack = document.getElementById("toastStack");
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.style.cssText += "display:flex;align-items:center;justify-content:space-between;gap:10px;";
+
+    const text = document.createElement("span");
+    text.textContent = message;
+    el.appendChild(text);
+
+    const undoBtn = document.createElement("button");
+    undoBtn.textContent = "Undo";
+    undoBtn.style.cssText =
+        "flex:none;background:none;border:1px solid currentColor;border-radius:999px;" +
+        "color:inherit;font:inherit;font-size:11px;padding:3px 12px;cursor:pointer;";
+    el.appendChild(undoBtn);
+
+    stack.appendChild(el);
+
+    let settled = false;
+
+    const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        el.remove();
+        onCommit();
+    }, duration);
+
+    undoBtn.addEventListener("click", () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        el.remove();
+        onUndo();
+    });
 }
 
 /* "Today" / "Tomorrow" / "In 4 days" close to now, falls back to a
@@ -555,6 +597,8 @@ async function render() {
         return;
     }
 
+    events = events.filter(e => !pendingDeleteIds.has(e.id));
+
     const query = searchQuery.trim().toLowerCase();
     const isSearching = query.length > 0;
 
@@ -731,15 +775,29 @@ async function buildEventCard(event) {
         const removeBtn = document.createElement("button");
         removeBtn.className = "event-action-btn danger";
         removeBtn.textContent = "Remove";
-        removeBtn.addEventListener("click", async (e) => {
+        removeBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            try {
-                await PlanoraData.deleteEvent(event.id);
-                toast("Removed from your calendar.");
-                render();
-            } catch (err) {
-                toast(err.message, "error");
-            }
+
+            pendingDeleteIds.add(event.id);
+            render();
+
+            toastWithUndo(
+                "Event removed.",
+                () => {
+                    pendingDeleteIds.delete(event.id);
+                    render();
+                },
+                async () => {
+                    try {
+                        await PlanoraData.deleteEvent(event.id);
+                    } catch (err) {
+                        toast(err.message, "error");
+                    } finally {
+                        pendingDeleteIds.delete(event.id);
+                        render();
+                    }
+                }
+            );
         });
         actions.appendChild(removeBtn);
 
