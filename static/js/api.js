@@ -114,7 +114,7 @@ const Planora = (() => {
     async function requireAuth() {
         const user = await getCurrentUser();
         if (!user) {
-            window.location.href = "login.html";
+            window.location.href = "/login";
             return null;
         }
         return user;
