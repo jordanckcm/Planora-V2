@@ -27,10 +27,10 @@ import time
 import os
 from functools import wraps
 
-from flask import Flask, request, jsonify, session, redirect
+from flask import Flask, request, jsonify, session, redirect, render_template, send_from_directory
 
 
-app = Flask(__name__, static_folder=".", static_url_path="")
+app = Flask(__name__)
 
 app.secret_key = os.environ["SECRET_KEY"]
 
@@ -205,8 +205,34 @@ add_demo_data()
 @app.route("/")
 def serve_home_page():
     if get_logged_in_username():
-        return app.send_static_file("index.html")
+        return render_template("index.html")
     return redirect("/login.html")
+
+
+@app.route("/login.html")
+def serve_login_page():
+    return render_template("login.html")
+
+
+@app.route("/profile.html")
+def serve_profile_page():
+    return render_template("profile.html")
+
+
+@app.route("/admin.html")
+def serve_admin_page():
+    return render_template("admin.html")
+
+
+@app.route("/sw.js")
+def serve_service_worker():
+    # sw.js physically lives in static/js/, but a service worker can only
+    # control pages under the folder it's served from unless we say
+    # otherwise. Serving it at the site root with this header keeps it
+    # able to control the whole app, not just /static/js/.
+    response = send_from_directory("static/js", "sw.js")
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
 
 
 @app.route("/api/signup", methods=["POST"])
