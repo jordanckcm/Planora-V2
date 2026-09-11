@@ -1,21 +1,21 @@
 @font-face {
     font-family: "Gotham";
-    src: url(fonts/Gotham.ttf);
+    src: url(../fonts/Gotham.ttf);
 }
 
 @font-face {
     font-family: "VHS";
-    src: url(fonts/vhs-gothic.ttf);
+    src: url(../fonts/vhs-gothic.ttf);
 }
 
 @font-face {
     font-family: "Stronger";
-    src: url(fonts/BelieveStrongerPersonalUseOnlyRegular-aYdXK.ttf);
+    src: url(../fonts/BelieveStrongerPersonalUseOnlyRegular-aYdXK.ttf);
 }
 
 @font-face {
     font-family: "StarShield";
-    src: url(fonts/StarShieldV2-9M52K.ttf);
+    src: url(../fonts/StarShieldV2-9M52K.ttf);
 }
 
 
