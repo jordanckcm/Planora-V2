@@ -369,7 +369,10 @@ def get_events():
     if mode == "global":
         matching_events = [e for e in events if e["visibility"] == "global"]
     else:
-        matching_events = [e for e in events if e["owner"].lower() == username.lower()]
+        matching_events = [
+            e for e in events
+            if e["owner"].lower() == username.lower() and e["visibility"] == "local"
+        ]
 
     if year:
         matching_events = [e for e in matching_events if e["date"].startswith(year)]
