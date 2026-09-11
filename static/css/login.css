@@ -1,0 +1,464 @@
+/* =========================================================
+   PLANORA — LOGIN
+========================================================= */
+
+@font-face {
+    font-family: "Gotham";
+    src: url(fonts/Gotham.ttf);
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "VHS";
+    src: url(fonts/vhs-gothic.ttf);
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Stronger";
+    src: url(fonts/BelieveStrongerPersonalUseOnlyRegular-aYdXK.ttf);
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "StarShield";
+    src: url(fonts/StarShieldV2-9M52K.ttf);
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Gothikka";
+    src: url(fonts/Gothikka.ttf);
+    font-display: swap;
+}
+
+html {
+    overflow: hidden;
+}
+
+body {
+    min-height: 100dvh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    overflow-x: hidden;
+    overflow: hidden;
+    position: relative;
+    background: rgb(252, 252, 252);
+}
+
+/* Dedicated viewport-locked layer for the giant number. Fixed +
+   its own overflow:hidden means the oversized rotated text can
+   never inflate the page's scrollable area, no matter how big
+   font-size gets — it's clipped right here, independent of body. */
+.random-number-clip {
+    position: fixed;
+    inset: 0;
+
+    overflow: hidden;
+
+    z-index: 1;
+    pointer-events: none;
+}
+
+.random-number {
+    font-size: 2550px;
+    left: 50%;
+    top: 20%;
+    transform: translateX(-50%) rotate(90deg);
+    font-family: "StarShield"; 
+    font-weight: bold;
+    
+    position: absolute;
+    color: black;
+    opacity: 0.125;
+    user-select: none;
+    pointer-events: none;
+}
+
+@media (max-width: 600px) {
+    .random-number {
+        font-size: 750px;
+    }
+}
+
+.table-glow {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+}
+
+/* =========================
+   PAGE LAYOUT
+   (auth-shell + the pin board sit side by side on wide
+   screens; on narrow screens it's just the auth-shell,
+   centered, same as before)
+========================= */
+
+.auth-page {
+    position: relative;
+    z-index: 2;
+
+    width: 100%;
+    max-width: 1120px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 56px;
+}
+
+.auth-shell {
+    width: min(100%, 380px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+}
+
+
+/* =========================
+   PINTEREST-STYLE BOARD
+   Pure black/white "pins" — no photos to pull from, so each
+   image is a small grayscale gradient standing in for one.
+   Hidden below 1000px; the auth-shell alone carries mobile.
+========================= */
+
+.pin-board {
+    display: none;
+}
+
+@media (min-width: 1000px) {
+
+    .pin-board {
+        display: block;
+
+        width: 400px;
+        height: min(700px, 90dvh);
+
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+        mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+
+        animation: pin-board-in 0.5s ease-out;
+    }
+
+    .pin-columns {
+        column-count: 2;
+        column-gap: 12px;
+    }
+
+    .pin-card {
+        break-inside: avoid;
+        margin-bottom: 12px;
+
+        border-radius: 14px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .pin-card.light {
+        background: rgb(252, 252, 252);
+        color: #0c0c0c;
+        border-color: rgba(0, 0, 0, 0.12);
+    }
+
+    .pin-card.dark {
+        background: rgb(19, 19, 19);
+        color: #f2f2f2;
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .pin-photo {
+        width: 100%;
+    }
+
+    .pin-card.h-sm .pin-photo { height: 90px; }
+    .pin-card.h-md .pin-photo { height: 140px; }
+    .pin-card.h-lg .pin-photo { height: 200px; }
+
+    .pin-photo-1 { background: linear-gradient(150deg, #050505, #3a3a3a 55%, #0c0c0c); }
+    .pin-photo-2 { background: linear-gradient(160deg, #dcdcdc, #f7f7f7 60%, #cfcfcf); }
+    .pin-photo-3 { background: linear-gradient(140deg, #101010, #454545 45%, #050505 100%); }
+    .pin-photo-4 { background: linear-gradient(155deg, #e6e6e6, #ffffff 50%, #d2d2d2); }
+    .pin-photo-5 { background: linear-gradient(145deg, #0a0a0a, #363636 40%, #121212); }
+    .pin-photo-6 { background: repeating-linear-gradient(45deg, #f2f2f2, #f2f2f2 8px, #dcdcdc 8px, #dcdcdc 16px); }
+
+    .pin-caption {
+        padding: 10px 12px 12px;
+        font-family: "Gotham";
+    }
+
+    .pin-caption-solo {
+        padding: 18px 16px;
+        display: flex;
+        align-items: center;
+        min-height: 100%;
+    }
+
+    .pin-card.h-sm .pin-caption-solo { min-height: 90px; }
+    .pin-card.h-md .pin-caption-solo { min-height: 140px; }
+
+    .pin-title {
+        font-size: 13.5px;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+
+    .pin-caption-solo .pin-title {
+        font-size: 15px;
+    }
+
+    .pin-meta {
+        margin-top: 4px;
+        font-size: 10.5px;
+        opacity: 0.55;
+    }
+
+    @keyframes pin-board-in {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .pin-board {
+            animation: none;
+        }
+    }
+}
+
+
+/* =========================
+   BRAND
+========================= */
+
+.auth-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.brand-mark {
+    width: 46px;
+    height: 46px;
+    margin-bottom: 4px;
+
+    background-image: url(icons/planora.png);
+    background-size: cover;
+    background-position: center;
+}
+
+.brand-name {
+    font-family: "Gotham";
+    font-size: 75px;
+    letter-spacing: 0.01em;
+    color: black;
+}
+
+.brand-tag {
+    font-family: "VHS";
+    font-size: 12px;
+    color: black;
+    opacity: 0.85;
+}
+
+
+/* =========================
+   CARD
+========================= */
+
+.auth-card {
+    width: 100%;
+
+    padding: 22px;
+
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+
+/* =========================
+   TABS
+========================= */
+
+.auth-tabs {
+    display: flex;
+    gap: 6px;
+
+    margin-bottom: 20px;
+
+    padding: 4px;
+
+    background: rgb(19, 19, 19);
+    border-radius: var(--radius-pill);
+}
+
+.auth-tab {
+    flex: 1;
+
+    height: 38px;
+
+    border: none;
+    border-radius: var(--radius-pill);
+
+    background: transparent;
+    color: var(--text-dim);
+
+    font-family: "Gotham";
+    font-size: 18px;
+
+    cursor: pointer;
+
+    transition: 0.2s ease;
+}
+
+.auth-tab.active {
+    background: var(--text);
+    color: #0c0c0c;
+}
+
+
+/* =========================
+   FORM
+========================= */
+
+.auth-form {
+    display: none;
+    flex-direction: column;
+}
+
+.auth-form.active {
+    display: flex;
+}
+
+.field-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    margin-top: 14px;
+}
+
+.field-label:first-child {
+    margin-top: 0;
+}
+
+.field-input {
+    width: 100%;
+    height: 46px;
+
+    padding: 0 14px;
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+
+    background: rgb(19, 19, 19);
+    color: var(--text);
+
+    font-size: 14px;
+
+    outline: none;
+
+    transition: border-color 0.2s ease;
+}
+
+.field-input:focus {
+    border-color: var(--border-strong);
+}
+
+.field-input::placeholder {
+    color: var(--text-faint);
+    font-size: 12.5px;
+}
+
+.password-wrap {
+    position: relative;
+}
+
+.reveal-toggle {
+    position: absolute;
+    right: 6px;
+    top: 6px;
+
+    height: 34px;
+    padding: 0 12px;
+
+    border: none;
+    border-radius: var(--radius-sm);
+
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-dim);
+
+    font-size: 10px;
+
+    cursor: pointer;
+}
+
+.reveal-toggle:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.strength-hint {
+    margin-top: 8px;
+
+    font-size: 10.5px;
+    color: var(--text-faint);
+}
+
+.strength-hint.ok {
+    color: #9fd89f;
+}
+
+.remember-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 16px;
+
+    font-size: 11.5px;
+    color: var(--text-dim);
+
+    cursor: pointer;
+}
+
+.remember-row input {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--gold);
+}
+
+.form-error {
+    min-height: 16px;
+    margin-top: 12px;
+
+    font-size: 11.5px;
+    color: #e08b86;
+}
+
+.auth-submit {
+    width: 100%;
+    height: 46px;
+    margin-top: 6px;
+
+    font-family: "Gotham";
+    font-size: 18px;
+}
+
+.auth-footnote {
+    margin-top: 18px;
+
+    text-align: center;
+
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--text-faint);
+}
