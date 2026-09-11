@@ -6,8 +6,6 @@
 
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-        // best-effort — if this fails, the app just works exactly
-        // like it did before, with no offline support
         navigator.serviceWorker.register("/sw.js").catch(() => {});
     });
 }
@@ -21,22 +19,11 @@ async function apiRequest(url, options = {}) {
             body: options.body ? JSON.stringify(options.body) : undefined
         });
     } catch (networkErr) {
-        // fetch() itself only throws when the request never reached
-        // the server at all — i.e. you're offline
         const offlineError = new Error("No connection right now.");
         offlineError.isOffline = true;
         throw offlineError;
     }
 
-    // Read the body as text first instead of calling response.json()
-    // directly. Most responses are valid JSON, but if the server ever
-    // sends back something that isn't — an unhandled error slipping
-    // past app.py's error handlers, a dev-server hiccup, a proxy
-    // stepping in — response.json() throws a raw "Unexpected token
-    // ... in JSON" straight from the browser's parser. That's cryptic
-    // and, worse, surfaces even when the request itself (like a
-    // delete) already succeeded server-side. Parsing it ourselves lets
-    // us turn that into a message that actually explains what happened.
     const raw = await response.text();
     let data = {};
     if (raw) {
@@ -83,10 +70,12 @@ const Planora = (() => {
         return apiRequest("/api/login", { method: "POST", body: { username, password, remember } });
     }
 
+    // Wipes every cache api.js keeps in localStorage, not just the
+    // identity cache — otherwise the next person to log in on this
+    // browser can inherit the previous account's cached event lists.
     async function logout() {
         const result = await apiRequest("/api/logout", { method: "POST" });
-        localStorage.removeItem("planora_started");
-        localStorage.removeItem("planora_cached_me");
+        clearAllLocalCaches();
         return result;
     }
 
@@ -96,9 +85,6 @@ const Planora = (() => {
             try { localStorage.setItem("planora_cached_me", JSON.stringify(user)); } catch (e) { /* storage full/unavailable — safe to ignore */ }
             return user;
         } catch (err) {
-            // Only fall back to the cached identity when we couldn't reach
-            // the server at all. A real 401 (actually logged out) should
-            // still send you to login, even if a stale cache exists.
             if (err.isOffline) {
                 const cached = localStorage.getItem("planora_cached_me");
                 if (cached) {
@@ -109,8 +95,6 @@ const Planora = (() => {
         }
     }
 
-    // Call at the top of a protected page. Redirects to login if
-    // there's no session, otherwise resolves with the user.
     async function requireAuth() {
         const user = await getCurrentUser();
         if (!user) {
@@ -137,6 +121,16 @@ const Planora = (() => {
 
 })();
 
+// Removes every localStorage key this app writes, so switching accounts
+// on the same browser never leaks one user's cached data to the next.
+function clearAllLocalCaches() {
+    localStorage.removeItem("planora_started");
+    localStorage.removeItem("planora_cached_me");
+    Object.keys(localStorage)
+        .filter((key) => key.startsWith("planora_cached_events_"))
+        .forEach((key) => localStorage.removeItem(key));
+}
+
 
 /* =========================
    EVENTS / COMMENTS
@@ -144,8 +138,13 @@ const Planora = (() => {
 
 const PlanoraData = (() => {
 
+    // Cache key now includes the username so two different accounts
+    // sharing a browser never read or overwrite each other's cached
+    // Local event list.
     async function getEvents(mode, year) {
-        const cacheKey = `planora_cached_events_${mode}_${year}`;
+        const me = await Planora.getCurrentUser();
+        const owner = me ? me.username.toLowerCase() : "anon";
+        const cacheKey = `planora_cached_events_${mode}_${year}_${owner}`;
 
         try {
             const events = await apiRequest(`/api/events?mode=${encodeURIComponent(mode)}&year=${encodeURIComponent(year)}`);
@@ -154,14 +153,12 @@ const PlanoraData = (() => {
             }
             return events;
         } catch (err) {
-            // Global still needs the server — only Near/local falls back
-            // to whatever we last saw for this year.
             if (err.isOffline && mode === "local") {
                 const cached = localStorage.getItem(cacheKey);
                 if (cached) {
                     try {
                         const events = JSON.parse(cached);
-                        events.fromCache = true; // lets the UI mention it's stale
+                        events.fromCache = true;
                         return events;
                     } catch (e) { /* fall through to the throw below */ }
                 }
@@ -186,9 +183,6 @@ const PlanoraData = (() => {
         return apiRequest(`/api/events/${eventId}`, { method: "DELETE" });
     }
 
-    // Admin-only: remove an event you don't own (e.g. moderating Global).
-    // Goes through apiRequest like everything else here, so it gets the
-    // same offline handling and safe JSON parsing.
     async function adminDeleteEvent(eventId) {
         return apiRequest(`/api/admin/events/${eventId}`, { method: "DELETE" });
     }
