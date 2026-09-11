@@ -71,7 +71,7 @@ function bindActions() {
 
     async function doLogout() {
         await Planora.logout();
-        window.location.href = "login.html";
+        window.location.href = "/login";
     }
 
     document.getElementById("saveProfile").addEventListener("click", async () => {
