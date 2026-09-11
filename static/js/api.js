@@ -174,6 +174,10 @@ const PlanoraData = (() => {
         return apiRequest("/api/events", { method: "POST", body: event });
     }
 
+    async function editEvent(eventId, event) {
+        return apiRequest(`/api/events/${eventId}`, { method: "PUT", body: event });
+    }
+
     async function addToMyCalendar(eventId) {
         return apiRequest(`/api/events/${eventId}/add`, { method: "POST" });
     }
@@ -212,6 +216,7 @@ const PlanoraData = (() => {
     return {
         getEvents,
         addEvent,
+        editEvent,
         addToMyCalendar,
         deleteEvent,
         adminDeleteEvent,
