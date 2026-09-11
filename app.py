@@ -477,6 +477,61 @@ def add_event():
     return jsonify(new_event)
 
 
+@app.route("/api/events/<int:event_id>", methods=["PUT"])
+def edit_event(event_id):
+    """
+    Lets you edit an event you own — title, description, dates, times,
+    color, icon. Visibility (local vs global) is intentionally left
+    alone here: changing it would mean re-running the same caps/role
+    checks add_event does, and cascading to any clones others made.
+    Delete and recreate if you need to actually change visibility.
+    """
+    user = get_logged_in_user()
+    if not user:
+        return jsonify({"error": "Not signed in."}), 401
+
+    event = next((e for e in events if e["id"] == event_id), None)
+    if not event:
+        return jsonify({"error": "Event not found."}), 404
+
+    if event["owner"].lower() != user["username"].lower():
+        return jsonify({"error": "You can only edit your own events."}), 403
+
+    data = request.get_json()
+    title = data.get("title", "").strip()
+    description = data.get("description", "").strip()
+    date = data.get("date", "")
+
+    if not title or not date:
+        return jsonify({"error": "Add a name and date first."}), 400
+
+    start_time = data.get("startTime", "").strip()
+    end_time = data.get("endTime", "").strip()
+    end_date = data.get("endDate", "").strip() or date
+
+    if end_date < date:
+        return jsonify({"error": "End date can't be before the start date."}), 400
+
+    color = data.get("color")
+    if color not in EVENT_COLORS:
+        color = event["color"]
+
+    icon = data.get("icon")
+    if icon not in EVENT_ICONS:
+        icon = event["icon"]
+
+    event["title"] = title
+    event["description"] = description
+    event["date"] = date
+    event["end_date"] = end_date
+    event["start_time"] = start_time
+    event["end_time"] = end_time
+    event["color"] = color
+    event["icon"] = icon
+
+    return jsonify(event)
+
+
 @app.route("/api/events/<int:event_id>/add", methods=["POST"])
 def add_to_my_calendar(event_id):
     global next_event_id
