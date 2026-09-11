@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Planora</title>
-    <link rel="icon" type="image/png" href="/images/planora logo.png">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/planora logo.png') }}">
 
-    <link rel="stylesheet" href="homepage.css">
-    <link rel="stylesheet" href="homepage-extra.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage-extra.css') }}">
 </head>
 
 <body>
@@ -220,8 +220,8 @@
     <div class="toast-stack" id="toastStack"></div>
 
     <!-- JAVASCRIPT -->
-    <script src="api.js"></script>
-    <script src="homepage.js"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/homepage.js') }}"></script>
 
 </body>
 
