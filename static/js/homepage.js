@@ -30,6 +30,8 @@ const EVENT_ICONS = ["🎉", "🎮", "🎵", "🍕", "🏀", "🎨", "📚", "�
 
 let selectedEventColor = EVENT_COLORS[0];
 let selectedEventIcon = EVENT_ICONS[0];
+let editingEventId = null; // null = creating a new event, otherwise the id being edited
+let eventFormEl = null;
 
 
 function toast(message, type = "") {
@@ -717,6 +719,15 @@ async function buildEventCard(event) {
 
     // Deleting your own event: everyone can do this, any role, any mode.
     if (event.isMine) {
+        const editBtn = document.createElement("button");
+        editBtn.className = "event-action-btn";
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openEventFormForEdit(event);
+        });
+        actions.appendChild(editBtn);
+
         const removeBtn = document.createElement("button");
         removeBtn.className = "event-action-btn danger";
         removeBtn.textContent = "Remove";
@@ -1096,7 +1107,7 @@ function buildAddEventUI() {
     eventForm.className = "event-form";
     eventForm.innerHTML = `
         <div class="event-form-box">
-            <div class="form-title">Create event</div>
+            <div class="form-title" id="eventFormTitle">Create event</div>
 
             <input type="text" id="eventTitle" placeholder="Event name" maxlength="80">
             <textarea id="eventDescription" placeholder="Description" maxlength="400"></textarea>
@@ -1119,7 +1130,7 @@ function buildAddEventUI() {
             <div class="field-label">Color</div>
             <div class="event-color-row" id="eventColorRow"></div>
 
-            <div class="visibility-row">
+            <div class="visibility-row" id="visibilityRow">
                 <input type="checkbox" id="eventVisibility">
                 <label for="eventVisibility">Post to Global (everyone can see this)</label>
             </div>
@@ -1134,6 +1145,7 @@ function buildAddEventUI() {
         </div>
     `;
     document.body.appendChild(eventForm);
+    eventFormEl = eventForm;
 
     const iconRow = eventForm.querySelector("#eventIconRow");
     EVENT_ICONS.forEach(icon => {
@@ -1171,7 +1183,10 @@ function buildAddEventUI() {
     }
 
     addButton.addEventListener("click", () => {
+        editingEventId = null;
         eventForm.classList.add("show");
+        document.getElementById("eventFormTitle").textContent = "Create event";
+        document.getElementById("saveEvent").textContent = "Create";
         document.getElementById("eventTitle").value = "";
         document.getElementById("eventDescription").value = "";
         document.getElementById("eventDate").value = "";
@@ -1179,6 +1194,15 @@ function buildAddEventUI() {
         document.getElementById("eventStartTime").value = "";
         document.getElementById("eventEndTime").value = "";
         document.getElementById("eventVisibility").checked = false;
+
+        // Restore the visibility option in case a previous edit hid it
+        document.getElementById("visibilityRow").style.display = "";
+        if (currentUser.role === "community") {
+            eventForm.querySelector(".visibility-row").style.display = "none";
+            document.getElementById("visibilityLockedHint").style.display = "block";
+        } else {
+            document.getElementById("visibilityLockedHint").style.display = "none";
+        }
 
         selectedEventIcon = EVENT_ICONS[0];
         selectedEventColor = EVENT_COLORS[0];
@@ -1219,31 +1243,92 @@ function buildAddEventUI() {
             return;
         }
 
+        const eventPayload = {
+            title,
+            description,
+            date,
+            endDate,
+            startTime,
+            endTime,
+            icon: selectedEventIcon,
+            color: selectedEventColor
+        };
+
+        const wasEditing = editingEventId !== null;
+
         try {
-            await PlanoraData.addEvent({
-                title,
-                description,
-                date,
-                endDate,
-                startTime,
-                endTime,
-                visibility: isPublic ? "global" : "local",
-                icon: selectedEventIcon,
-                color: selectedEventColor
-            });
+            if (wasEditing) {
+                await PlanoraData.editEvent(editingEventId, eventPayload);
+            } else {
+                await PlanoraData.addEvent({ ...eventPayload, visibility: isPublic ? "global" : "local" });
+            }
         } catch (err) {
             toast(err.message, "error");
             return;
         }
 
         eventForm.classList.remove("show");
+        editingEventId = null;
 
         currentYear = new Date(date).getFullYear();
         openMonth = new Date(date).getMonth() + 1;
-        mode = "local";
-        setActiveModeButton();
+        if (!wasEditing) {
+            mode = "local";
+            setActiveModeButton();
+        }
 
-        toast(isPublic ? "Posted to Global and your calendar." : "Added to your calendar.", "success");
+        toast(
+            wasEditing ? "Event updated." : (isPublic ? "Posted to Global and your calendar." : "Added to your calendar."),
+            "success"
+        );
         render();
     });
+}
+
+
+/* Opens the same create-event form, but pre-filled with an existing
+   event's details and pointed at the edit endpoint instead of create.
+   Visibility can't be changed here — see edit_event in app.py for why —
+   so that row is hidden while editing regardless of role. */
+function openEventFormForEdit(event) {
+    editingEventId = event.id;
+
+    document.getElementById("eventFormTitle").textContent = "Edit event";
+    document.getElementById("saveEvent").textContent = "Save changes";
+
+    document.getElementById("eventTitle").value = event.title || "";
+    document.getElementById("eventDescription").value = event.description || "";
+    document.getElementById("eventDate").value = event.date || "";
+    document.getElementById("eventEndDate").value =
+        (event.end_date && event.end_date !== event.date) ? event.end_date : "";
+    document.getElementById("eventStartTime").value = event.start_time || "";
+    document.getElementById("eventEndTime").value = event.end_time || "";
+
+    document.getElementById("visibilityRow").style.display = "none";
+    document.getElementById("visibilityLockedHint").style.display = "none";
+
+    selectedEventIcon = event.icon || EVENT_ICONS[0];
+    selectedEventColor = event.color || EVENT_COLORS[0];
+
+    eventFormEl.querySelectorAll(".event-icon-dot").forEach(el => {
+        el.classList.toggle("selected", el.textContent === selectedEventIcon);
+    });
+    eventFormEl.querySelectorAll(".event-color-dot").forEach(el => {
+        el.classList.toggle("selected", el.style.background === hexToRgbForCompare(selectedEventColor));
+    });
+
+    eventFormEl.classList.add("show");
+}
+
+/* Color dots store their color as an inline style, which the browser
+   normalizes to an rgb(...) string — so comparing against the original
+   hex value directly would never match. This converts a hex color the
+   same way the browser does, just for that comparison. */
+function hexToRgbForCompare(hex) {
+    const probe = document.createElement("div");
+    probe.style.background = hex;
+    document.body.appendChild(probe);
+    const rgb = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return rgb;
 }
