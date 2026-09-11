@@ -7,10 +7,10 @@
 
     <title>Planora</title>
 
-    <link rel="stylesheet" href="base.css">
-    <link rel="stylesheet" href="homepage.css">
-    <link rel="stylesheet" href="homepage-extra.css">
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage-extra.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 
 <body>
@@ -95,8 +95,8 @@
 
     <div class="toast-stack" id="toastStack"></div>
 
-    <script src="api.js"></script>
-    <script src="admin.js"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 
 </body>
 
