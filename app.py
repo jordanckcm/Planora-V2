@@ -172,7 +172,6 @@ def add_demo_data():
     global next_event_id
     year = time.localtime().tm_year
 
-"""
     demo_events = [
         {"owner": "sable", "title": "Rooftop Card Night",
          "description": "Bring your own deck, we'll bring the snacks.",
@@ -197,7 +196,7 @@ def add_demo_data():
             "created_at": now_in_ms(),
         })
         next_event_id += 1
-"""
+
 
 add_demo_data()
 
@@ -226,10 +225,6 @@ def serve_admin_page():
 
 @app.route("/sw.js")
 def serve_service_worker():
-    # sw.js physically lives in static/js/, but a service worker can only
-    # control pages under the folder it's served from unless we say
-    # otherwise. Serving it at the site root with this header keeps it
-    # able to control the whole app, not just /static/js/.
     response = send_from_directory("static/js", "sw.js")
     response.headers["Service-Worker-Allowed"] = "/"
     return response
@@ -482,13 +477,6 @@ def add_event():
 
 @app.route("/api/events/<int:event_id>", methods=["PUT"])
 def edit_event(event_id):
-    """
-    Lets you edit an event you own — title, description, dates, times,
-    color, icon. Visibility (local vs global) is intentionally left
-    alone here: changing it would mean re-running the same caps/role
-    checks add_event does, and cascading to any clones others made.
-    Delete and recreate if you need to actually change visibility.
-    """
     user = get_logged_in_user()
     if not user:
         return jsonify({"error": "Not signed in."}), 401
@@ -592,15 +580,6 @@ def add_to_my_calendar(event_id):
 
 @app.route("/api/events/<int:event_id>", methods=["DELETE"])
 def delete_event(event_id):
-    """
-    Deletes an event you own. This is unrelated to role — every role
-    (Community, Community+, Admin) can always delete their own events.
-    Deleting events you DON'T own is handled separately, by admins only,
-    at /api/admin/events/<id>.
-
-    If it was a Global event, this also removes everyone's local copies
-    of it (and comments on those copies) — see cascade_delete_event.
-    """
     username = get_logged_in_username()
     if not username:
         return jsonify({"error": "Not signed in."}), 401
@@ -654,7 +633,6 @@ def add_comment(event_id):
 
 @app.route("/api/events/<int:event_id>/comments/<int:comment_id>", methods=["PUT"])
 def edit_comment(event_id, comment_id):
-    """Only the comment's own author can edit it — not the event's poster or an admin."""
     username = get_logged_in_username()
     if not username:
         return jsonify({"error": "Not signed in."}), 401
@@ -679,11 +657,6 @@ def edit_comment(event_id, comment_id):
 
 @app.route("/api/events/<int:event_id>/comments/<int:comment_id>", methods=["DELETE"])
 def delete_comment(event_id, comment_id):
-    """
-    The comment's own author can always delete it. The event's poster or
-    an admin can also delete ANY comment on that event, same as event
-    moderation elsewhere.
-    """
     user = get_logged_in_user()
     if not user:
         return jsonify({"error": "Not signed in."}), 401
@@ -783,11 +756,6 @@ def admin_list_events(current_user):
 @app.route("/api/admin/events/<int:event_id>", methods=["DELETE"])
 @require_role("admin")
 def admin_delete_event(current_user, event_id):
-    """
-    Lets an admin remove ANY event, not just their own — e.g. to take
-    down something inappropriate someone posted to Global. Also cascades:
-    see cascade_delete_event.
-    """
     for event in events:
         if event["id"] == event_id:
             events.remove(event)
