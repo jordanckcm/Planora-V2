@@ -206,20 +206,20 @@ add_demo_data()
 def serve_home_page():
     if get_logged_in_username():
         return render_template("index.html")
-    return redirect("/login.html")
+    return redirect("/login")
 
 
-@app.route("/login.html")
+@app.route("/login")
 def serve_login_page():
     return render_template("login.html")
 
 
-@app.route("/profile.html")
+@app.route("/profile")
 def serve_profile_page():
     return render_template("profile.html")
 
 
-@app.route("/admin.html")
+@app.route("/admin")
 def serve_admin_page():
     return render_template("admin.html")
 
